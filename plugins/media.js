@@ -25,6 +25,10 @@ const pipeline = promisify(stream.pipeline);
 const fs = require("fs");
 const googleTTS = require('google-tts-api');
 const { spotifydl } = require('../lib/spotify')
+const { exec } = require("child_process");
+require("../")
+
+
 
 command(
   {
@@ -89,47 +93,13 @@ async function gimage(query, amount = 5) {
   });
 }
 
+//tes start..
 
-
-command(
-  {
-    pattern: "removebg ?(.*)",
-    fromMe: isPrivate,  
-    desc: "removes background of an image",
-  },
-  async (message, match) => {
-    if (!message.reply_message || !message.reply_message.image)
-      return await message.reply("_Reply to a photo_");
-    if (RMBG_KEY === false)
-      return await message.reply(
-        `_Get a new api key from https://www.remove.bg/api_\n_set it via_\n_setvar RMBG_KEY: api key_`
-      );
-
-    await message.reply("_Removing Background_");
-    var location = await message.reply_message.downloadMediaMessage();
-
-    var form = new FormData();
-    form.append("image_file", fs.createReadStream(location));
-    form.append("size", "auto");
-
-    var rbg = await got.stream.post("https://api.remove.bg/v1.0/removebg", {
-      body: form,
-      headers: {
-        "X-Api-Key": RMBG_KEY,
-      },
-    });
-
-    await pipeline(rbg, fs.createWriteStream("rbg.png"));
-
-    await message.sendMessage(fs.readFileSync("rbg.png"), {}, "image");
-    await unlink(location);
-    return await unlink("rbg.png");
-  }
-);
+/*
 
 command(
   {
-    pattern: "print ?(.*)",
+    pattern: "barcode ?(.*)",
     fromMe: isPrivate,
     desc: "removes background of an image",
   },
@@ -137,60 +107,112 @@ command(
     if (!message.reply_message || !message.reply_message.image)
       return await message.reply("_Reply to a photo_");
 
+    const saveFolder = "./images"; // Set your desired folder path
+    const location = await message.reply_message.downloadMediaMessage();
+    const userImageSavePath = `${saveFolder}/${Date.now()}_user_sent_image.png`;
     
+    const newFileName = `${saveFolder}/media.jpg`;
+  
+    await message.reply("_barcode checking...._");
+
+    // Save the user-sent image to a folder
+    fs.copyFileSync(location, userImageSavePath);
+
+    // Rename the user-sent image to "media.jpg"
+    fs.rename(location, newFileName, (err) => {
+      if (err) {
+        console.error(err);
+      } else {
+        console.log('File renamed to media.jpg successfully!');
+
+        // Execute the Python file
+        exec("python main.py", { cwd: saveFolder }, (error, stdout, stderr) => {
+          if (error) {
+            console.error(`Error executing Python file: ${error}`);
+          } else {
+            console.log(`Python file output: ${stdout}`);
+            
+        
+ message.reply(stdout)
+            
+          }
+        });
+      }
+    });
+    
+     
     
 
-    // Execute the Python file
-    exec("python print.py", { cwd: saveFolder }, async (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error executing Python file: ${error}`);
-        await message.reply("_Error executing Python file_");
+    //await message.reply("_Image saved and renamed to media.jpg successfully._");
+  }
+);
+*/
+//new...........,
+
+
+
+command(
+  {
+    pattern: "barcode ?(.*)",
+    fromMe: isPrivate,
+    desc: "removes background of an image",
+  },
+  async (message, match) => {
+    if (!message.reply_message || !message.reply_message.image)
+      return await message.reply("_Reply to a photo_");
+
+    const saveFolder = "./images"; // Set your desired folder path
+    const location = await message.reply_message.downloadMediaMessage();
+    const userImageSavePath = `${saveFolder}/${Date.now()}_user_sent_image.png`;
+    
+    const newFileName = `${saveFolder}/media.jpg`;
+  
+    //await message.reply("_barcode_");
+
+    // Save the user-sent image to a folder
+    fs.copyFileSync(location, userImageSavePath);
+
+    // Rename the user-sent image to "media.jpg"
+    fs.rename(location, newFileName, (err) => {
+      if (err) {
+        console.error(err);
       } else {
-        console.log(`Python file output: ${stdout}`);
-        await message.reply(stdout);
+        console.log('File renamed to media.jpg successfully!');
+
+        // Execute the Python file
+        exec("python main.py", { cwd: saveFolder }, async (error, stdout, stderr) => {
+          if (error) {
+            console.error(`Error executing Python file: ${error}`);
+          } else {
+            console.log(`Python file output: ${stdout}`);
+            
+            
+            
+            const start = new Date().getTime();
+            let { key } = await message.client.sendMessage(message.jid, { text: "_Checking..._" });
+            const end = new Date().getTime();
+            
+            setTimeout(async () => {
+              await message.client.sendMessage(message.jid, { text: "_Checking,,,_", edit: key });
+await message.client.sendMessage(message.jid, { text: "_Checking_ ✅", edit: key });
+message.client.sendMessage(message.jid, { text: "_done_", edit: key });              
+              
+            }, 1000);
+            
+    await message.reply(stdout);
+          }
+        });
       }
     });
   }
 );
-
-
-command(
-  {
-    pattern: "photo ?(.*)",
-    fromMe: isPrivate,  
-    desc: "Changes sticker to Photo",
-    type: "converter",
-  },
-  async (message, match, m) => {
-    if (!message.reply_message)
-      return await message.reply("_Reply to a sticker_");
-    if (message.reply_message.mtype !== "stickerMessage")
-      return await message.reply("_Not a sticker_");
-    let buff = await m.quoted.download();
-    return await message.sendMessage(buff, {}, "image");
-  }
-);
-
-command(
-  {
-    pattern: "mp4 ?(.*)",
-    fromMe: isPrivate,  
-    desc: "Changes sticker to Video",
-    type: "converter",
-  },
-  async (message, match, m) => {
-    if (!message.reply_message)
-      return await message.reply("_Reply to a sticker_");
-    if (message.reply_message.mtype !== "stickerMessage")
-      return await message.reply("_Not a sticker_");
-    let buff = await m.quoted.download();
-    let buffer = await webp2mp4(buff);
-    return await message.sendMessage(buffer, {}, "video");
-  }
-);
+    //print
 
 
 
+
+
+//stop......
 command ({
 pattern: "2tts",
 fromMe: isPrivate,  
@@ -198,7 +220,7 @@ desc: "google-tts",
 type: "tool"
 },
 async (message,match) => {
-	if(!match) return await message.reply("waiting for a query")
+  if(!match) return await message.reply("waiting for a query")
 let url = await googleTTS.getAudioUrl(match, {
   lang: 'en',
   slow: false,
