@@ -82,7 +82,7 @@ async function Tsp() {
 
       //conn.sendMessage(conn.user.id, { text: "connected✔︎✔︎" });
       let creds = require("./session/creds.json")
-      await conn.sendMessage(conn.user.id, { text: "*done*" });
+      await conn.sendMessage(conn.user.id, { text: "`activeted`📍\n _running now.._"  });;
 
       console.log("✅ Login Successful!");
       console.log("⬇️ Installing External Plugins...");
@@ -144,7 +144,7 @@ async function Tsp() {
             const from = msg.from.endsWith("@g.us") ? `[ ${(await conn.groupMetadata(msg.from)).subject} ] : ${msg.pushName}` : msg.pushName;
             const sender = msg.sender;
             console.log(`-------------\n${await from} : ${await text_msg}`);
-      
+            console.log(text_msg)
         }
 	
           events.commands.map(async (command) => {
